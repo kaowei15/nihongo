@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>にほんご学習 | JLPT N5→N4→N3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background: linear-gradient(135deg, #fef7f0 0%, #fff5f5 50%, #f0f4ff 100%); min-height: 100vh; }
+        .jp-font { font-family: 'Noto Sans JP', sans-serif; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeUp 0.35s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-btn.active { background: linear-gradient(135deg, #e11d48, #be123c); color: white; box-shadow: 0 4px 14px rgba(225,29,72,0.35); }
+        .level-btn.active.n5 { background: linear-gradient(135deg, #059669, #047857); color: white; box-shadow: 0 4px 14px rgba(5,150,105,0.35); }
+        .level-btn.active.n4 { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+        .level-btn.active.n3 { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; box-shadow: 0 4px 14px rgba(124,58,237,0.35); }
+        .kana-cell { transition: all 0.2s; cursor: pointer; }
+        .kana-cell:hover { transform: scale(1.08); background: #fff1f2; border-color: #fda4af; }
+        .kana-cell.learned { background: #ecfdf5; border-color: #6ee7b7; }
+        .flashcard { perspective: 1000px; height: 260px; }
+        .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
+        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .flashcard-back { transform: rotateY(180deg); background: linear-gradient(135deg, #1e293b, #334155); color: white; }
+        .flashcard-front { background: white; border: 2px solid #fecdd3; }
+        .progress-bar { transition: width 0.4s ease; }
+        .quiz-option.correct { background: #d1fae5; border-color: #10b981; }
+        .quiz-option.wrong { background: #fee2e2; border-color: #ef4444; }
+        .sakura { position: fixed; pointer-events: none; opacity: 0.15; font-size: 1.5rem; animation: fall linear infinite; z-index: 0; }
+        @keyframes fall { 0% { transform: translateY(-10vh) rotate(0deg); } 100% { transform: translateY(110vh) rotate(360deg); } }
+        .content-wrap { position: relative; z-index: 1; }
+    </style>
+</head>
+<body class="text-slate-800">
+<div id="sakura-container"></div>
+<div class="content-wrap max-w-5xl mx-auto px-4 py-6 pb-24">
+
+    <header class="text-center mb-6">
+        <div class="inline-flex items-center gap-3 mb-2">
+            <span class="text-4xl">🌸</span>
+            <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-rose-600 to-red-700 bg-clip-text text-transparent">にほんご学習</h1>
+            <span class="text-4xl">🌸</span>
+        </div>
+        <p class="text-slate-500">JLPT 分級學習路徑：N5 → N4 → N3</p>
+        <div class="mt-4 flex flex-wrap justify-center gap-4 text-sm">
+            <div class="bg-white/80 backdrop-blur rounded-full px-4 py-2 shadow-sm">
+                <i class="fas fa-fire text-orange-500 mr-1"></i>連續 <span id="streak" class="font-bold text-rose-600">0</span> 天
+            </div>
+            <div class="bg-white/80 backdrop-blur rounded-full px-4 py-2 shadow-sm">
+                <i class="fas fa-star text-yellow-500 mr-1"></i>已掌握 <span id="mastered-count" class="font-bold text-rose-600">0</span> 項
+            </div>
+        </div>
+    </header>
+
+    <!-- JLPT 等級選擇 -->
+    <div class="bg-white rounded-2xl shadow-lg p-4 mb-6">
+        <p class="text-xs text-slate-400 text-center mb-3">選擇學習等級（建議依序學習）</p>
+        <div class="flex justify-center gap-2 md:gap-4">
+            <button class="level-btn n5 active flex-1 max-w-[140px] py-3 rounded-xl text-sm font-bold border-2 border-emerald-200 bg-emerald-50 text-emerald-700 transition" data-level="n5">
+                <div class="text-lg">N5</div>
+                <div class="text-xs font-normal opacity-80">入門</div>
+            </button>
+            <button class="level-btn n4 flex-1 max-w-[140px] py-3 rounded-xl text-sm font-bold border-2 border-blue-200 bg-blue-50 text-blue-700 transition" data-level="n4">
+                <div class="text-lg">N4</div>
+                <div class="text-xs font-normal opacity-80">初級</div>
+            </button>
+            <button class="level-btn n3 flex-1 max-w-[140px] py-3 rounded-xl text-sm font-bold border-2 border-violet-200 bg-violet-50 text-violet-700 transition" data-level="n3">
+                <div class="text-lg">N3</div>
+                <div class="text-xs font-normal opacity-80">中級</div>
+            </button>
+        </div>
+        <div id="level-info" class="mt-4 p-3 rounded-xl bg-slate-50 text-sm text-slate-600 text-center"></div>
+    </div>
+
+    <!-- 內容類型導航 -->
+    <nav class="flex flex-wrap justify-center gap-2 mb-6">
+        <button class="nav-btn active px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm border border-rose-100 transition" data-tab="kana">
+            <i class="fas fa-language mr-1"></i> 假名
+        </button>
+        <button class="nav-btn px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm border border-rose-100 transition" data-tab="vocab">
+            <i class="fas fa-book mr-1"></i> 單字
+        </button>
+        <button class="nav-btn px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm border border-rose-100 transition" data-tab="grammar">
+            <i class="fas fa-pen-fancy mr-1"></i> 文法
+        </button>
+        <button class="nav-btn px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm border border-rose-100 transition" data-tab="quiz">
+            <i class="fas fa-brain mr-1"></i> 測驗
+        </button>
+    </nav>
+
+    <!-- 假名（N5） -->
+    <section id="tab-kana" class="tab-panel active">
+        <div id="kana-content"></div>
+    </section>
+
+    <!-- 單字 -->
+    <section id="tab-vocab" class="tab-panel">
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold"><i class="fas fa-book-open text-rose-500 mr-2"></i>單字卡</h2>
+                <span id="vocab-level-badge" class="text-xs font-bold px-2 py-1 rounded-full"></span>
+            </div>
+            <div class="mb-4">
+                <input type="search" id="vocab-search" placeholder="搜尋單字（日文 / 讀音 / 中文）" 
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-rose-400 focus:outline-none text-sm"
+                    oninput="filterVocab(this.value)">
+            </div>
+            <div class="flex flex-wrap gap-2 mb-6 max-h-32 overflow-y-auto" id="vocab-categories"></div>
+            <div class="flashcard mx-auto max-w-md cursor-pointer" id="flashcard" onclick="flipCard()">
+                <div class="flashcard-inner">
+                    <div class="flashcard-front shadow-lg p-6">
+                        <p class="text-sm text-slate-400 mb-2">點擊翻面</p>
+                        <p id="fc-jp" class="jp-font text-4xl font-bold text-rose-700 mb-2">—</p>
+                        <p id="fc-romaji" class="text-lg text-slate-400">—</p>
+                        <button onclick="event.stopPropagation(); speak(document.getElementById('fc-jp').textContent)" class="mt-4 text-rose-500 hover:text-rose-700">
+                            <i class="fas fa-volume-up text-2xl"></i>
+                        </button>
+                    </div>
+                    <div class="flashcard-back shadow-lg p-6">
+                        <p class="text-sm text-slate-300 mb-2">中文意思</p>
+                        <p id="fc-zh" class="text-3xl font-bold">—</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-center gap-4 mt-6">
+                <button onclick="prevCard()" class="px-5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition"><i class="fas fa-chevron-left"></i> 上一張</button>
+                <span id="fc-counter" class="self-center text-sm text-slate-400">1 / 10</span>
+                <button onclick="nextCard()" class="px-5 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition">下一張 <i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold">單字列表</h3>
+                <span id="vocab-list-count" class="text-xs text-slate-400"></span>
+            </div>
+            <div id="vocab-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+        </div>
+    </section>
+
+    <!-- 文法 -->
+    <section id="tab-grammar" class="tab-panel">
+        <div class="flex items-center justify-between mb-4 px-1">
+            <h2 class="text-xl font-bold"><i class="fas fa-pen-fancy text-rose-500 mr-2"></i>文法</h2>
+            <span id="grammar-level-badge" class="text-xs font-bold px-2 py-1 rounded-full"></span>
+        </div>
+        <div class="space-y-4" id="grammar-list"></div>
+    </section>
+
+    <!-- 測驗 -->
+    <section id="tab-quiz" class="tab-panel">
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+            <div id="quiz-start">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-bold"><i class="fas fa-brain text-rose-500 mr-2"></i>小測驗</h2>
+                    <span id="quiz-level-badge" class="text-xs font-bold px-2 py-1 rounded-full"></span>
+                </div>
+                <p class="text-slate-500 mb-6">測試目前等級的掌握程度，共 10 題</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="quiz-modes"></div>
+                <div id="quiz-history" class="text-sm text-slate-400"></div>
+            </div>
+            <div id="quiz-active" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-slate-400">第 <span id="quiz-num">1</span> / 10 題</span>
+                    <span class="text-sm font-medium text-rose-600">得分：<span id="quiz-score">0</span></span>
+                </div>
+                <div class="h-1.5 bg-slate-100 rounded-full mb-6">
+                    <div id="quiz-progress" class="h-full bg-rose-500 rounded-full transition-all" style="width:10%"></div>
+                </div>
+                <p id="quiz-question" class="text-2xl font-bold text-center jp-font my-8">—</p>
+                <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                <p id="quiz-feedback" class="text-center mt-4 h-6 text-sm font-medium"></p>
+            </div>
+            <div id="quiz-result" class="hidden text-center">
+                <div class="text-6xl mb-4" id="result-emoji">🎉</div>
+                <h3 class="text-2xl font-bold mb-2">測驗完成！</h3>
+                <p class="text-4xl font-bold text-rose-600 mb-2"><span id="final-score">0</span> / 10</p>
+                <p id="result-message" class="text-slate-500 mb-6"></p>
+                <button onclick="resetQuiz()" class="px-6 py-2.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition">再來一次</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="nihongo-n5.js"></script>
+<script src="nihongo-n4.js"></script>
+<script>
+// ===== 假名資料（N5 基礎）=====
+const HIRAGANA = [
+    { char: 'あ', romaji: 'a' }, { char: 'い', romaji: 'i' }, { char: 'う', romaji: 'u' }, { char: 'え', romaji: 'e' }, { char: 'お', romaji: 'o' },
+    { char: 'か', romaji: 'ka' }, { char: 'き', romaji: 'ki' }, { char: 'く', romaji: 'ku' }, { char: 'け', romaji: 'ke' }, { char: 'こ', romaji: 'ko' },
+    { char: 'さ', romaji: 'sa' }, { char: 'し', romaji: 'shi' }, { char: 'す', romaji: 'su' }, { char: 'せ', romaji: 'se' }, { char: 'そ', romaji: 'so' },
+    { char: 'た', romaji: 'ta' }, { char: 'ち', romaji: 'chi' }, { char: 'つ', romaji: 'tsu' }, { char: 'て', romaji: 'te' }, { char: 'と', romaji: 'to' },
+    { char: 'な', romaji: 'na' }, { char: 'に', romaji: 'ni' }, { char: 'ぬ', romaji: 'nu' }, { char: 'ね', romaji: 'ne' }, { char: 'の', romaji: 'no' },
+    { char: 'は', romaji: 'ha' }, { char: 'ひ', romaji: 'hi' }, { char: 'ふ', romaji: 'fu' }, { char: 'へ', romaji: 'he' }, { char: 'ほ', romaji: 'ho' },
+    { char: 'ま', romaji: 'ma' }, { char: 'み', romaji: 'mi' }, { char: 'む', romaji: 'mu' }, { char: 'め', romaji: 'me' }, { char: 'も', romaji: 'mo' },
+    { char: 'や', romaji: 'ya' }, { char: 'ゆ', romaji: 'yu' }, { char: 'よ', romaji: 'yo' },
+    { char: 'ら', romaji: 'ra' }, { char: 'り', romaji: 'ri' }, { char: 'る', romaji: 'ru' }, { char: 'れ', romaji: 're' }, { char: 'ろ', romaji: 'ro' },
+    { char: 'わ', romaji: 'wa' }, { char: 'を', romaji: 'wo' }, { char: 'ん', romaji: 'n' },
+];
+const KATAKANA = [
+    { char: 'ア', romaji: 'a' }, { char: 'イ', romaji: 'i' }, { char: 'ウ', romaji: 'u' }, { char: 'エ', romaji: 'e' }, { char: 'オ', romaji: 'o' },
+    { char: 'カ', romaji: 'ka' }, { char: 'キ', romaji: 'ki' }, { char: 'ク', romaji: 'ku' }, { char: 'ケ', romaji: 'ke' }, { char: 'コ', romaji: 'ko' },
+    { char: 'サ', romaji: 'sa' }, { char: 'シ', romaji: 'shi' }, { char: 'ス', romaji: 'su' }, { char: 'セ', romaji: 'se' }, { char: 'ソ', romaji: 'so' },
+    { char: 'タ', romaji: 'ta' }, { char: 'チ', romaji: 'chi' }, { char: 'ツ', romaji: 'tsu' }, { char: 'テ', romaji: 'te' }, { char: 'ト', romaji: 'to' },
+    { char: 'ナ', romaji: 'na' }, { char: 'ニ', romaji: 'ni' }, { char: 'ヌ', romaji: 'nu' }, { char: 'ネ', romaji: 'ne' }, { char: 'ノ', romaji: 'no' },
+    { char: 'ハ', romaji: 'ha' }, { char: 'ヒ', romaji: 'hi' }, { char: 'フ', romaji: 'fu' }, { char: 'ヘ', romaji: 'he' }, { char: 'ホ', romaji: 'ho' },
+    { char: 'マ', romaji: 'ma' }, { char: 'ミ', romaji: 'mi' }, { char: 'ム', romaji: 'mu' }, { char: 'メ', romaji: 'me' }, { char: 'モ', romaji: 'mo' },
+    { char: 'ヤ', romaji: 'ya' }, { char: 'ユ', romaji: 'yu' }, { char: 'ヨ', romaji: 'yo' },
+    { char: 'ラ', romaji: 'ra' }, { char: 'リ', romaji: 'ri' }, { char: 'ル', romaji: 'ru' }, { char: 'レ', romaji: 're' }, { char: 'ロ', romaji: 'ro' },
+    { char: 'ワ', romaji: 'wa' }, { char: 'ヲ', romaji: 'wo' }, { char: 'ン', romaji: 'n' },
+];
+
+// ===== JLPT 課程資料 =====
+const CURRICULUM = {
+    n5: N5_DATA,
+    n4: N4_DATA,
+    n3: {
+        label: 'N3',
+        badgeClass: 'bg-violet-100 text-violet-700',
+        desc: '中級｜約 3,750 單字｜抽象概念、社會話題、書面與口語並重',
+        hasKana: false,
+        vocab: {
+            society: { label: '🏛️ 社會', words: [
+                { jp: '環境', romaji: 'kankyou', zh: '環境' }, { jp: '経済', romaji: 'keizai', zh: '經濟' },
+                { jp: '政治', romaji: 'seiji', zh: '政治' }, { jp: '文化', romaji: 'bunka', zh: '文化' },
+                { jp: '伝統', romaji: 'dento', zh: '傳統' }, { jp: '社会', romaji: 'shakai', zh: '社會' },
+                { jp: '法律', romaji: 'houritsu', zh: '法律' }, { jp: '制度', romaji: 'seido', zh: '制度' },
+            ]},
+            abstract: { label: '💭 抽象概念', words: [
+                { jp: '影響', romaji: 'eikyou', zh: '影響' }, { jp: '関係', romaji: 'kankei', zh: '關係' },
+                { jp: '原因', romaji: 'genin', zh: '原因' }, { jp: '結果', romaji: 'kekka', zh: '結果' },
+                { jp: '状況', romaji: 'joukyou', zh: '狀況' }, { jp: '可能性', romaji: 'kanousei', zh: '可能性' },
+                { jp: '意識', romaji: 'ishiki', zh: '意識' }, { jp: '責任', romaji: 'sekinin', zh: '責任' },
+            ]},
+            business: { label: '📊 商務', words: [
+                { jp: '契約', romaji: 'keiyaku', zh: '契約' }, { jp: '交渉', romaji: 'koushou', zh: '交涉 / 談判' },
+                { jp: '目標', romaji: 'mokuhyou', zh: '目標' }, { jp: '成果', romaji: 'seika', zh: '成果' },
+                { jp: '効率', romaji: 'kouritsu', zh: '效率' }, { jp: '競争', romaji: 'kyousou', zh: '競爭' },
+                { jp: '投資', romaji: 'toushi', zh: '投資' }, { jp: '利益', romaji: 'rieki', zh: '利益' },
+            ]},
+            emotion: { label: '❤️ 情感 / 態度', words: [
+                { jp: '期待', romaji: 'kitai', zh: '期待' }, { jp: '失望', romaji: 'shitsubou', zh: '失望' },
+                { jp: '感謝', romaji: 'kansha', zh: '感謝' }, { jp: '後悔', romaji: 'koukai', zh: '後悔' },
+                { jp: '不安', romaji: 'fuan', zh: '不安' }, { jp: '満足', romaji: 'manzoku', zh: '滿足' },
+            ]},
+            advanced_expr: { label: '📖 進階表現', words: [
+                { jp: '〜に関して', romaji: 'ni kanshite', zh: '關於～' },
+                { jp: '〜に対して', romaji: 'ni taishite', zh: '對於～' },
+                { jp: '〜によって', romaji: 'ni yotte', zh: '由於～ / 根據～' },
+                { jp: '〜において', romaji: 'ni oite', zh: '在～方面' },
+                { jp: '〜にとって', romaji: 'ni totte', zh: '對～來說' },
+                { jp: '〜わけにはいかない', romaji: 'wake ni wa ikanai', zh: '不能～' },
+            ]},
+        },
+        grammar: [
+            { title: 'わけだ — 難怪 / 理所當然', pattern: '句型 + わけだ', example: '彼は毎日練習する。上手なわけだ。', exampleZh: '他每天練習，難怪很厲害。', note: '表示根據理由得出的自然結論。' },
+            { title: 'ように — 為了 / 像…一樣', pattern: '動詞辞書形 + ように', example: '健康になるように運動します。', exampleZh: '為了健康而運動。', note: '表示目的，或「像…那樣」的比喻。' },
+            { title: 'ために — 因為 / 為了', pattern: '名詞/動詞 + ために', example: '雨のために試合が中止になった。', exampleZh: '因為下雨比賽取消了。', note: '前接名詞表原因，前接動詞表目的。' },
+            { title: 'ばかり — 只 / 剛剛', pattern: '動詞て形 + ばかり', example: '食べたばかりです。', exampleZh: '剛吃過。', note: '也可接名詞表示「只會…」。' },
+            { title: 'おかげで / せいで — 多虧 / 因為（負面）', pattern: 'おかげで / せいで', example: '先生のおかげで合格しました。', exampleZh: '多虧老師才及格。', note: 'おかげで 正面，せいで 負面原因。' },
+            { title: 'につれて — 隨著…', pattern: '名詞 + につれて', example: '年を取るにつれて、忘れやすくなる。', exampleZh: '隨著年紀增長，變得容易忘。', note: '表示兩件事同步變化。' },
+            { title: 'として — 作為', pattern: '名詞 + として', example: '教師として働いています。', exampleZh: '作為老師工作。', note: '表示身分、立場或資格。' },
+            { title: 'ばかりでなく — 不僅…而且', pattern: 'A ばかりでなく B も', example: '彼は英語ばかりでなく、中国語も話せる。', exampleZh: '他不僅會英語，也會中文。', note: '強調後者同樣成立，書面語常用。' },
+        ],
+    },
+};
+
+// ===== 狀態 =====
+let currentLevel = 'n5';
+let kanaType = 'hira';
+let learnedKana = JSON.parse(localStorage.getItem('learnedKana') || '[]');
+let currentCategory = '';
+let cardIndex = 0;
+let vocabSearchQuery = '';
+let quizState = { type: '', level: '', questions: [], current: 0, score: 0, answered: false };
+
+const LEVEL_ORDER = ['n5', 'n4', 'n3'];
+
+// ===== 工具 =====
+function speak(text) {
+    if (!text || text === '—') return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP';
+    u.rate = 0.85;
+    speechSynthesis.speak(u);
+}
+
+function saveProgress() {
+    localStorage.setItem('learnedKana', JSON.stringify(learnedKana));
+    localStorage.setItem('lastStudyDate', new Date().toDateString());
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('streak').textContent = calcStreak();
+    document.getElementById('mastered-count').textContent = learnedKana.length;
+}
+
+function calcStreak() {
+    const last = localStorage.getItem('lastStudyDate');
+    const streak = parseInt(localStorage.getItem('streak') || '0');
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (last === today) return streak || 1;
+    if (last === yesterday) {
+        const n = streak + 1;
+        localStorage.setItem('streak', n);
+        localStorage.setItem('lastStudyDate', today);
+        return n;
+    }
+    localStorage.setItem('streak', '1');
+    localStorage.setItem('lastStudyDate', today);
+    return 1;
+}
+
+function getLevelData(level) { return CURRICULUM[level]; }
+
+function getVocabForLevel(level) { return getLevelData(level).vocab; }
+
+function getAllVocabForLevel(level) {
+    return Object.values(getVocabForLevel(level)).flatMap(c => c.words);
+}
+
+function getFirstCategory(level) {
+    return Object.keys(getVocabForLevel(level))[0];
+}
+
+function countVocab(level) {
+    return getAllVocabForLevel(level).length;
+}
+
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function esc(str) {
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// ===== 等級切換 =====
+function selectLevel(level) {
+    currentLevel = level;
+    currentCategory = getFirstCategory(level);
+    cardIndex = 0;
+    vocabSearchQuery = '';
+    const searchEl = document.getElementById('vocab-search');
+    if (searchEl) searchEl.value = '';
+
+    document.querySelectorAll('.level-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.level === level) btn.classList.add('active');
+    });
+
+    const data = getLevelData(level);
+    document.getElementById('level-info').innerHTML =
+        `<strong>${data.label}</strong>：${data.desc}<br>
+         <span class="text-xs text-slate-400">本級單字 ${countVocab(level)} 個 · 文法 ${data.grammar.length} 項</span>`;
+
+    ['vocab-level-badge', 'grammar-level-badge', 'quiz-level-badge'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = data.label;
+        el.className = 'text-xs font-bold px-2 py-1 rounded-full ' + data.badgeClass;
+    });
+
+    renderKanaPanel();
+    renderVocabCategories();
+    updateCard();
+    renderVocabList();
+    renderGrammar();
+    renderQuizModes();
+}
+
+document.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectLevel(btn.dataset.level));
+});
+
+// ===== 導航 =====
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+// ===== 假名 =====
+function renderKanaPanel() {
+    const container = document.getElementById('kana-content');
+    const data = getLevelData(currentLevel);
+
+    if (!data.hasKana) {
+        container.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
+                <div class="text-5xl mb-4">あ</div>
+                <h3 class="text-xl font-bold mb-2">五十音為 N5 基礎課程</h3>
+                <p class="text-slate-500 mb-6">假名學習屬於 N5 入門內容，請先完成 N5 五十音再進入 ${data.label}。</p>
+                <button onclick="selectLevel('n5'); document.querySelector('[data-tab=kana]').click();"
+                    class="px-6 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                    前往 N5 假名學習
+                </button>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h2 class="text-xl font-bold"><i class="fas fa-font text-emerald-500 mr-2"></i>五十音圖 <span class="text-sm font-normal text-emerald-600">(N5)</span></h2>
+                <div class="flex gap-2">
+                    <button id="kana-hira" class="kana-type-btn active px-4 py-1.5 rounded-lg text-sm font-medium bg-emerald-600 text-white">平假名</button>
+                    <button id="kana-kata" class="kana-type-btn px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-600">片假名</button>
+                </div>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">點一下聽發音 · 快速點兩下標記已學會</p>
+            <div id="kana-grid" class="grid grid-cols-5 gap-2 md:gap-3"></div>
+            <div class="mt-4">
+                <div class="flex justify-between text-sm text-slate-500 mb-1">
+                    <span>學習進度</span><span id="kana-progress-text">0 / 46</span>
+                </div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div id="kana-progress-bar" class="progress-bar h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style="width:0%"></div>
+                </div>
+            </div>
+        </div>`;
+
+    document.getElementById('kana-hira').addEventListener('click', () => switchKanaType('hira'));
+    document.getElementById('kana-kata').addEventListener('click', () => switchKanaType('kata'));
+    renderKana();
+}
+
+function switchKanaType(type) {
+    kanaType = type;
+    document.getElementById('kana-hira').className = 'kana-type-btn px-4 py-1.5 rounded-lg text-sm font-medium ' + (type === 'hira' ? 'bg-emerald-600 text-white active' : 'bg-slate-100 text-slate-600');
+    document.getElementById('kana-kata').className = 'kana-type-btn px-4 py-1.5 rounded-lg text-sm font-medium ' + (type === 'kata' ? 'bg-emerald-600 text-white active' : 'bg-slate-100 text-slate-600');
+    renderKana();
+}
+
+function renderKana() {
+    const grid = document.getElementById('kana-grid');
+    if (!grid) return;
+    const data = kanaType === 'hira' ? HIRAGANA : KATAKANA;
+    grid.innerHTML = data.map(k => {
+        const key = kanaType + '_' + k.char;
+        const learned = learnedKana.includes(key);
+        return `<div class="kana-cell jp-font text-center p-2 md:p-3 rounded-xl border-2 border-slate-100 ${learned ? 'learned' : ''}"
+            data-key="${key}" data-char="${k.char}">
+            <div class="text-2xl md:text-3xl font-bold text-slate-800">${k.char}</div>
+            <div class="text-xs text-slate-400 mt-0.5">${k.romaji}</div></div>`;
+    }).join('');
+
+    grid.querySelectorAll('.kana-cell').forEach(cell => {
+        let timer = null;
+        cell.addEventListener('click', () => {
+            if (timer) { clearTimeout(timer); timer = null; toggleLearned(cell.dataset.key, cell); }
+            else { timer = setTimeout(() => { speak(cell.dataset.char); timer = null; }, 250); }
+        });
+    });
+    updateKanaProgress();
+}
+
+function toggleLearned(key, el) {
+    const idx = learnedKana.indexOf(key);
+    if (idx >= 0) learnedKana.splice(idx, 1); else learnedKana.push(key);
+    el.classList.toggle('learned');
+    saveProgress();
+    updateKanaProgress();
+}
+
+function updateKanaProgress() {
+    const el = document.getElementById('kana-progress-text');
+    if (!el) return;
+    const count = learnedKana.filter(k => k.startsWith(kanaType)).length;
+    el.textContent = count + ' / 46';
+    document.getElementById('kana-progress-bar').style.width = (count / 46 * 100) + '%';
+}
+
+// ===== 單字 =====
+function renderVocabCategories() {
+    const vocab = getVocabForLevel(currentLevel);
+    document.getElementById('vocab-categories').innerHTML = Object.entries(vocab).map(([key, cat]) =>
+        `<button onclick="selectCategory('${key}')" class="vocab-cat-btn px-3 py-1.5 rounded-lg text-sm font-medium transition ${key === currentCategory ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-rose-50'}" data-cat="${key}">${cat.label} <span class="opacity-70">(${cat.words.length})</span></button>`
+    ).join('');
+}
+
+function filterVocab(query) {
+    vocabSearchQuery = query.trim().toLowerCase();
+    renderVocabList();
+}
+
+function getFilteredWords(words) {
+    if (!vocabSearchQuery) return words;
+    return words.filter(w =>
+        w.jp.toLowerCase().includes(vocabSearchQuery) ||
+        w.romaji.toLowerCase().includes(vocabSearchQuery) ||
+        w.zh.toLowerCase().includes(vocabSearchQuery)
+    );
+}
+
+function selectCategory(key) {
+    currentCategory = key;
+    cardIndex = 0;
+    vocabSearchQuery = '';
+    const searchEl = document.getElementById('vocab-search');
+    if (searchEl) searchEl.value = '';
+    document.querySelectorAll('.vocab-cat-btn').forEach(b => {
+        b.className = 'vocab-cat-btn px-3 py-1.5 rounded-lg text-sm font-medium transition ' +
+            (b.dataset.cat === key ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-rose-50');
+    });
+    document.getElementById('flashcard').classList.remove('flipped');
+    updateCard();
+    renderVocabList();
+}
+
+function getCurrentWords() {
+    return getVocabForLevel(currentLevel)[currentCategory].words;
+}
+
+function getDisplayWords() {
+    return getFilteredWords(getCurrentWords());
+}
+
+function updateCard() {
+    const words = getDisplayWords();
+    if (!words.length) {
+        document.getElementById('fc-jp').textContent = '—';
+        document.getElementById('fc-romaji').textContent = '無符合結果';
+        document.getElementById('fc-zh').textContent = '—';
+        document.getElementById('fc-counter').textContent = '0 / 0';
+        return;
+    }
+    if (cardIndex >= words.length) cardIndex = 0;
+    const w = words[cardIndex];
+    document.getElementById('fc-jp').textContent = w.jp;
+    document.getElementById('fc-romaji').textContent = w.romaji;
+    document.getElementById('fc-zh').textContent = w.zh;
+    document.getElementById('fc-counter').textContent = (cardIndex + 1) + ' / ' + words.length;
+}
+
+function flipCard() { document.getElementById('flashcard').classList.toggle('flipped'); }
+
+function nextCard() {
+    const words = getDisplayWords();
+    if (!words.length) return;
+    cardIndex = (cardIndex + 1) % words.length;
+    document.getElementById('flashcard').classList.remove('flipped');
+    updateCard();
+}
+
+function prevCard() {
+    const words = getDisplayWords();
+    if (!words.length) return;
+    cardIndex = (cardIndex - 1 + words.length) % words.length;
+    document.getElementById('flashcard').classList.remove('flipped');
+    updateCard();
+}
+
+function renderVocabList() {
+    const all = getCurrentWords();
+    const words = getFilteredWords(all);
+    const countEl = document.getElementById('vocab-list-count');
+    if (countEl) countEl.textContent = vocabSearchQuery ? `顯示 ${words.length} / ${all.length}` : `共 ${all.length} 個`;
+    document.getElementById('vocab-list').innerHTML = words.length
+        ? words.map(w =>
+            `<div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-rose-50 transition cursor-pointer" onclick="speak('${esc(w.jp)}')">
+                <div><span class="jp-font font-bold text-lg">${w.jp}</span><span class="text-sm text-slate-400 ml-2">${w.romaji}</span></div>
+                <span class="text-slate-600 text-sm text-right max-w-[45%]">${w.zh}</span></div>`
+        ).join('')
+        : '<p class="text-center text-slate-400 py-6">找不到符合的單字</p>';
+    if (vocabSearchQuery) updateCard();
+}
+
+// ===== 文法 =====
+function renderGrammar() {
+    document.getElementById('grammar-list').innerHTML = getLevelData(currentLevel).grammar.map((g, i) =>
+        `<div class="bg-white rounded-2xl shadow-lg p-6">
+            <div class="flex items-start gap-3">
+                <span class="flex-shrink-0 w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm">${i + 1}</span>
+                <div class="flex-1">
+                    <h3 class="font-bold text-lg mb-1">${g.title}</h3>
+                    <p class="text-sm text-rose-600 font-mono bg-rose-50 inline-block px-3 py-1 rounded-lg mb-3">${g.pattern}</p>
+                    <p class="jp-font text-lg mb-1">${g.example}</p>
+                    <p class="text-slate-500 mb-2">${g.exampleZh}</p>
+                    <p class="text-sm text-slate-400"><i class="fas fa-lightbulb text-yellow-400 mr-1"></i>${g.note}</p>
+                </div>
+            </div>
+        </div>`
+    ).join('');
+}
+
+// ===== 測驗 =====
+function renderQuizModes() {
+    const label = getLevelData(currentLevel).label;
+    const modes = currentLevel === 'n5'
+        ? [
+            { type: 'kana', icon: 'あ', title: '假名測驗', desc: '看假名選讀音' },
+            { type: 'vocab', icon: '📖', title: '單字測驗', desc: '看日文選中文' },
+            { type: 'mixed', icon: '🎯', title: '綜合測驗', desc: '假名 + 單字' },
+        ]
+        : [
+            { type: 'vocab', icon: '📖', title: label + ' 單字', desc: '看日文選中文' },
+            { type: 'grammar', icon: '📝', title: label + ' 文法', desc: '看例句選意思' },
+            { type: 'mixed', icon: '🎯', title: label + ' 綜合', desc: '單字 + 文法' },
+        ];
+
+    document.getElementById('quiz-modes').innerHTML = modes.map(m =>
+        `<button onclick="startQuiz('${m.type}')" class="p-4 rounded-xl border-2 border-rose-100 hover:border-rose-400 hover:bg-rose-50 transition text-left">
+            <div class="text-2xl mb-2">${m.icon}</div>
+            <div class="font-bold">${m.title}</div>
+            <div class="text-sm text-slate-400">${m.desc}</div></button>`
+    ).join('');
+}
+
+function startQuiz(type) {
+    let pool = [];
+    const level = currentLevel;
+
+    if (type === 'kana' || (type === 'mixed' && level === 'n5')) {
+        pool = pool.concat(HIRAGANA.map(k => ({ ...k, qType: 'kana' })));
+    }
+    if (type === 'vocab' || type === 'mixed') {
+        pool = pool.concat(getAllVocabForLevel(level).map(w => ({ ...w, qType: 'vocab' })));
+    }
+    if (type === 'grammar' || (type === 'mixed' && level !== 'n5')) {
+        pool = pool.concat(getLevelData(level).grammar.map(g => ({ ...g, qType: 'grammar' })));
+    }
+
+    const questions = shuffle(pool).slice(0, 10).map(q => {
+        if (q.qType === 'kana') return buildKanaQuestion(q);
+        if (q.qType === 'grammar') return buildGrammarQuestion(q);
+        return buildVocabQuestion(q, level);
+    });
+
+    quizState = { type, level, questions, current: 0, score: 0, answered: false };
+    document.getElementById('quiz-start').classList.add('hidden');
+    document.getElementById('quiz-result').classList.add('hidden');
+    document.getElementById('quiz-active').classList.remove('hidden');
+    showQuestion();
+    saveProgress();
+}
+
+function buildKanaQuestion(k) {
+    const wrong = shuffle(HIRAGANA.map(h => h.romaji).filter(r => r !== k.romaji)).slice(0, 3);
+    return { question: k.char, answer: k.romaji, options: shuffle([k.romaji, ...wrong]), qType: 'kana' };
+}
+
+function buildVocabQuestion(w, level) {
+    const allZh = getAllVocabForLevel(level).map(v => v.zh);
+    const wrong = shuffle(allZh.filter(z => z !== w.zh)).slice(0, 3);
+    return { question: w.jp, answer: w.zh, options: shuffle([w.zh, ...wrong]), qType: 'vocab' };
+}
+
+function buildGrammarQuestion(g) {
+    const allGrammar = getLevelData(currentLevel).grammar;
+    const wrong = shuffle(allGrammar.filter(x => x.exampleZh !== g.exampleZh).map(x => x.exampleZh)).slice(0, 3);
+    return { question: g.example, answer: g.exampleZh, options: shuffle([g.exampleZh, ...wrong]), qType: 'grammar' };
+}
+
+function showQuestion() {
+    const q = quizState.questions[quizState.current];
+    quizState.answered = false;
+    document.getElementById('quiz-num').textContent = quizState.current + 1;
+    document.getElementById('quiz-score').textContent = quizState.score;
+    document.getElementById('quiz-progress').style.width = ((quizState.current + 1) / 10 * 100) + '%';
+    document.getElementById('quiz-question').textContent = q.question;
+    document.getElementById('quiz-feedback').textContent = '';
+    document.getElementById('quiz-options').innerHTML = q.options.map(o =>
+        `<button class="quiz-option p-4 rounded-xl border-2 border-slate-200 hover:border-rose-300 transition text-left font-medium"
+            onclick="answerQuiz(this, '${esc(o)}')">${o}</button>`
+    ).join('');
+}
+
+function answerQuiz(btn, selected) {
+    if (quizState.answered) return;
+    quizState.answered = true;
+    const q = quizState.questions[quizState.current];
+    const correct = selected === q.answer;
+    if (correct) quizState.score++;
+
+    document.querySelectorAll('.quiz-option').forEach(b => {
+        if (b.textContent === q.answer) b.classList.add('correct');
+        else if (b === btn && !correct) b.classList.add('wrong');
+        b.disabled = true;
+    });
+
+    const fb = document.getElementById('quiz-feedback');
+    fb.textContent = correct ? '✓ 正確！' : '✗ 正確答案：' + q.answer;
+    fb.className = 'text-center mt-4 h-6 text-sm font-medium ' + (correct ? 'text-green-600' : 'text-red-500');
+
+    setTimeout(() => {
+        quizState.current++;
+        if (quizState.current >= 10) showResult();
+        else showQuestion();
+    }, 1200);
+}
+
+function showResult() {
+    document.getElementById('quiz-active').classList.add('hidden');
+    document.getElementById('quiz-result').classList.remove('hidden');
+    const s = quizState.score;
+    document.getElementById('final-score').textContent = s;
+    document.getElementById('result-emoji').textContent = s >= 9 ? '🏆' : s >= 7 ? '🎉' : s >= 5 ? '👍' : '💪';
+    document.getElementById('result-message').textContent =
+        s >= 9 ? '太厲害了！可以挑戰下一級了！' : s >= 7 ? '表現不錯，繼續加油！' : s >= 5 ? '還可以，多複習會更好！' : '別氣餒，再讀一遍課程吧！';
+
+    const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
+    history.unshift({ type: quizState.type, level: quizState.level, score: s, date: new Date().toLocaleDateString('zh-TW') });
+    localStorage.setItem('quizHistory', JSON.stringify(history.slice(0, 8)));
+    renderQuizHistory();
+}
+
+function resetQuiz() {
+    document.getElementById('quiz-result').classList.add('hidden');
+    document.getElementById('quiz-start').classList.remove('hidden');
+}
+
+function renderQuizHistory() {
+    const history = JSON.parse(localStorage.getItem('quizHistory') || '[]');
+    const typeLabels = { kana: '假名', vocab: '單字', grammar: '文法', mixed: '綜合' };
+    document.getElementById('quiz-history').innerHTML = history.length
+        ? '<p class="font-medium text-slate-500 mb-2">最近成績</p>' +
+          history.map(h => `<div class="flex justify-between py-1">
+            <span>${h.date} · ${(h.level || 'n5').toUpperCase()} ${typeLabels[h.type] || h.type}</span>
+            <span class="font-bold text-rose-600">${h.score}/10</span></div>`).join('')
+        : '';
+}
+
+// ===== 櫻花 =====
+function createSakura() {
+    const container = document.getElementById('sakura-container');
+    for (let i = 0; i < 12; i++) {
+        const el = document.createElement('div');
+        el.className = 'sakura';
+        el.textContent = '🌸';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.animationDuration = (8 + Math.random() * 12) + 's';
+        el.style.animationDelay = (Math.random() * 10) + 's';
+        container.appendChild(el);
+    }
+}
+
+// ===== 初始化 =====
+selectLevel('n5');
+renderQuizHistory();
+updateStats();
+createSakura();
+</script>
+</body>
+</html>
